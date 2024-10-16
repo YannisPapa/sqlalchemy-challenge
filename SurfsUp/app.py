@@ -35,9 +35,60 @@ Station = Base.classes.station
 #################################################
 # Flask Setup
 #################################################
+
 app = Flask(__name__)
 
+#################################################
+# Functions
+#################################################
 
+# Function to find the first date in the data
+def first_date():
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    # Find the first date found in the data
+    found_date = session.query(func.min(Measurement.date))
+
+    # Close the session
+    session.close()
+
+    return found_date[0][0]
+
+# Function to find the last date in the data
+def last_date():
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    # Find the last date found in the data
+    found_date = session.query(func.max(Measurement.date))
+
+    # Close the session
+    session.close()
+
+    return found_date[0][0]
+
+# Function to find what day is a year before the last date in the data
+def last_year():
+    # Find the most recent date
+    last_date_found = last_date()
+    # Calculate the last 12 months from most recent date
+    last_twelve_months = pd.to_datetime(last_date_found).date() - dt.timedelta(days=365)
+
+    return last_twelve_months
+
+# Function to find the most active station and retunr it
+def most_active_station():
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    # Build the list of all stations based on how active they are (how many times they show up in the database)
+    most_active_stations = session.query(Measurement.station,func.count(Measurement.station)).group_by(Measurement.station).order_by(func.count(Measurement.station).desc()).all()
+
+    # Close the session
+    session.close()
+
+    return most_active_stations[0][0]
 
 #################################################
 # Flask Routes
@@ -46,23 +97,18 @@ app = Flask(__name__)
 @app.route("/")
 def welcome():
     """List all available api routes."""
-    # Create our session (link) from Python to the DB
-    session = Session(engine)
 
     # Find the first date and last date found in the data to be used as an example
-    most_recent_date = session.query(func.max(Measurement.date))
-    first_date = session.query(func.min(Measurement.date))
-    
-    # Close the session
-    session.close()
+    last_date_found = last_date()
+    first_date_found = first_date()
 
     return (
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/{first_date[0][0]}<br/>"
-        f"/api/v1.0/{first_date[0][0]}/{most_recent_date[0][0]}"
+        f"/api/v1.0/{first_date_found}<br/>"
+        f"/api/v1.0/{first_date_found}/{last_date_found}"
     )
 
 
@@ -72,12 +118,8 @@ def precipitation():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
-    # Find the most recent date
-    most_recent_date = session.query(func.max(Measurement.date))
-    # Calculate the last 12 months from most recent date
-    last_twelve_months = pd.to_datetime(most_recent_date[0][0]).date() - dt.timedelta(days=365)
     # Get all the dates and prcp's for every date in the last 12 months from most recent date, sort it by date
-    prcp_results = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= last_twelve_months).order_by(Measurement.date).all()
+    prcp_results = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= last_year()).order_by(Measurement.date).all()
 
     # Close the session
     session.close()
@@ -126,14 +168,8 @@ def tobs():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
-    # Build the list of all stations based on how active they are (how many times they show up in the database)
-    most_active_stations = session.query(Measurement.station,func.count(Measurement.station)).group_by(Measurement.station).order_by(func.count(Measurement.station).desc()).all()
-    # Find the most recent date
-    most_recent_date = session.query(func.max(Measurement.date))
-    # Calculate the last 12 months from most recent date
-    last_twelve_months = pd.to_datetime(most_recent_date[0][0]).date() - dt.timedelta(days=365)
     # Get the date and tobs for the most active station over that last 12 months
-    tobs_results = session.query(Measurement.date, Measurement.tobs).where(Measurement.station == most_active_stations[0][0]).filter(Measurement.date >= last_twelve_months).order_by(Measurement.date).all()
+    tobs_results = session.query(Measurement.date, Measurement.tobs).where(Measurement.station == most_active_station()).filter(Measurement.date >= last_year()).order_by(Measurement.date).all()
 
     # Close the session
     session.close()
