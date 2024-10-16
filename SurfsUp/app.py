@@ -68,6 +68,7 @@ def welcome():
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
+    """Returns a list of precipitation for every date in the last 12 months from most recent date, sort it by date"""
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
@@ -95,6 +96,7 @@ def precipitation():
 
 @app.route("/api/v1.0/stations")
 def stations():
+    """Returns a list of all stations and their information"""
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
@@ -120,6 +122,7 @@ def stations():
 
 @app.route("/api/v1.0/tobs")
 def tobs():
+    """Returns a list of date and tobs for the most active station over that last 12 months"""
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
@@ -148,6 +151,7 @@ def tobs():
 
 @app.route("/api/v1.0/<start>")
 def start_date(start):
+    """Returns a list of min temp, avg temp, and max temp from a specified start date to the most current date"""
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
@@ -171,6 +175,7 @@ def start_date(start):
 
 @app.route("/api/v1.0/<start>/<end>")
 def start_end_date(start, end):
+    """Returns a list of min temp, avg temp, and max temp from a specified start date to a specified end date"""
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
